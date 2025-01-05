@@ -1,0 +1,136 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-header {
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+  padding: 0 24px;
+  background: #001529;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.logo-icon {
+  font-size: 24px;
+  color: white;
+}
+
+.app-content {
+  margin-top: 64px;
+  min-height: calc(100vh - 64px);
+  background: #f0f2f5;
+  padding: 24px;
+}
+
+/* Cart Drawer Styles */
+.ant-drawer-body {
+  padding: 0 !important;
+}
+
+.ant-drawer-content-wrapper {
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.product-image {
+  height: 200px;
+  object-fit: cover;
+}
+
+.product-header {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.cart-item {
+  margin-bottom: 16px;
+}
+
+.cart-item-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.cart-item-details {
+  flex: 1;
+  min-width: 200px;
+}
+
+.empty-cart {
+  text-align: center;
+  padding: 48px;
+}
+
+.empty-cart .anticon {
+  display: block;
+  margin-bottom: 24px;
+  color: #999;
+}
+
+.cart-summary {
+  margin-top: 24px;
+}
+
+.total-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.error-alert {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .cart-item {
+    .ant-space {
+      flex-direction: column;
+      align-items: stretch;
+      
+      .ant-space-item {
+        margin: 8px 0;
+      }
+    }
+  }
+}
+
+.reviews-list .ant-list-item {
+  background: white;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.review-content {
+  padding-left: 32px;
+  margin-top: 8px;
+  color: #333;
+}
+
+.ant-list-item-meta-title {
+  margin-bottom: 4px !important;
+}
