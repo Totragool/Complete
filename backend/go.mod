@@ -7,6 +7,7 @@ require github.com/gin-contrib/cors v1.7.3
 require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 )
 
 require (

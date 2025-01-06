@@ -1,0 +1,132 @@
+.product-image-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.product-image-card img {
+    transition: transform 0.3s ease;
+}
+
+.product-image-card img:hover {
+    transform: scale(1.05);
+}
+
+.product-details-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.shipping-info {
+    background-color: #f8f8f8;
+    border: 1px solid #e8e8e8;
+}
+
+.ant-descriptions {
+    background-color: #fafafa;
+}
+
+.ant-descriptions-item-label {
+    font-weight: bold;
+}
+
+/* Stock Status Badges */
+.ant-badge-status-dot {
+    width: 8px;
+    height: 8px;
+}
+
+.ant-badge-status-text {
+    margin-left: 8px;
+    font-size: 14px;
+}
+
+/* Price Styling */
+.ant-typography.ant-typography-success {
+    color: #52c41a;
+}
+
+/* Breadcrumb Styling */
+.ant-breadcrumb {
+    margin-bottom: 16px;
+    padding: 8px 0;
+}
+
+.ant-breadcrumb-link {
+    color: #666;
+}
+
+.ant-breadcrumb-link:hover {
+    color: #1890ff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-container {
+        padding: 16px;
+    }
+
+    .product-image-card,
+    .product-details-card {
+        margin-bottom: 16px;
+    }
+
+    .ant-space {
+        gap: 12px !important;
+    }
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+/* Error State */
+.error-alert {
+    max-width: 600px;
+    margin: 24px auto;
+}
+
+/* Animation */
+.ant-btn-primary {
+    transition: all 0.3s ease;
+}
+
+.ant-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(24,144,255,0.35);
+}
+
+/* Additional Features */
+.features-list {
+    margin-top: 24px;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.feature-icon {
+    font-size: 20px;
+    color: #1890ff;
+}
+
+/* Reviews Section Styling */
+.reviews-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.review-stats {
+    background-color: #fafafa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}

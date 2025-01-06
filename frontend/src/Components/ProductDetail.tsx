@@ -1,31 +1,42 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
     Card, Rate, Input, Button, Typography, Divider, 
-    Row, Col, Image, List, Space, Spin, Alert, Tag, App 
+    Row, Col, Image, Space, Spin, Alert, Tag, App,
+    Descriptions, Badge, Breadcrumb, message
 } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, CalendarOutlined } from '@ant-design/icons';
+import { 
+    ShoppingCartOutlined, 
+    HomeOutlined,
+    ArrowLeftOutlined,
+    TagOutlined,
+    CheckCircleOutlined,
+    ClockCircleOutlined,
+    HeartOutlined,
+    HeartFilled,
+    ShareAltOutlined
+} from '@ant-design/icons';
 import { ProductService } from '../services/ProductService';
 import { CartService } from '../services/CartService';
 import { Product } from '../interfaces/Product';
-import { Review } from '../interfaces/Review';
+import { ReviewSystem } from './ReviewSystem';
 
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
 
-export const ProductDetailPage: React.FC = () => {
-    const { message } = App.useApp();
+interface ProductDetailPageProps {
+    onCartUpdate: () => Promise<void>;
+}
+
+export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpdate }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
-    const [userRating, setUserRating] = useState(0);
-    const [userReview, setUserReview] = useState('');
-    const [submitting, setSubmitting] = useState(false);
     const [addingToCart, setAddingToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const userId = "user123";
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+    const userId = "user123"; // Should come from auth context
 
     const fetchProductDetails = async () => {
         try {
@@ -41,40 +52,14 @@ export const ProductDetailPage: React.FC = () => {
         }
     };
 
-    const handleSubmitReview = async () => {
-        if (!userRating) {
-            message.warning('Please provide a rating');
-            return;
-        }
-
-        if (!userReview.trim()) {
-            message.warning('Please write a review');
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            await ProductService.createReview({
-                ProductID: Number(id),
-                UserID: userId,
-                Rating: userRating,
-                Comment: userReview.trim()
-            });
-            message.success('Review submitted successfully');
-            setUserRating(0);
-            setUserReview('');
-            await fetchProductDetails();
-        } catch (error) {
-            console.error('Review submission error:', error);
-            message.error('Failed to submit review');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     const handleAddToCart = async () => {
         if (!product?.stock || product.stock.quantity === 0) {
             message.error('Product is out of stock');
+            return;
+        }
+
+        if (quantity > product.stock.quantity) {
+            message.error('Selected quantity exceeds available stock');
             return;
         }
 
@@ -83,6 +68,7 @@ export const ProductDetailPage: React.FC = () => {
             await CartService.addToCart(userId, product.ID);
             message.success('Added to cart successfully');
             await fetchProductDetails();
+            await onCartUpdate();
         } catch (error) {
             message.error('Failed to add to cart');
         } finally {
@@ -90,11 +76,46 @@ export const ProductDetailPage: React.FC = () => {
         }
     };
 
+    const handleQuantityChange = (value: number | null) => {
+        if (!value || value < 1) return;
+        if (product?.stock && value > product.stock.quantity) {
+            message.warning(`Only ${product.stock.quantity} items available`);
+            setQuantity(product.stock.quantity);
+            return;
+        }
+        setQuantity(value);
+    };
+
+    const handleShare = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        message.success('Product link copied to clipboard!');
+    };
+
+    const toggleFavorite = () => {
+        setIsFavorite(!isFavorite);
+        message.success(isFavorite ? 'Removed from wishlist' : 'Added to wishlist');
+    };
+
     useEffect(() => {
         if (id) {
             fetchProductDetails();
         }
     }, [id]);
+
+    const getStockStatus = () => {
+        if (!product?.stock) return null;
+
+        const { quantity, MinQuantity } = product.stock;
+        
+        if (quantity === 0) {
+            return <Badge status="error" text="Out of Stock" />;
+        }
+        if (quantity <= MinQuantity) {
+            return <Badge status="warning" text={`Low Stock (${quantity} left)`} />;
+        }
+        return <Badge status="success" text={`In Stock (${quantity} available)`} />;
+    };
 
     if (loading) {
         return (
@@ -122,39 +143,98 @@ export const ProductDetailPage: React.FC = () => {
     }
 
     return (
-        <div className="page-container p-4">
+        <div className="page-container">
+            <Breadcrumb className="mb-4">
+                <Breadcrumb.Item href="/">
+                    <HomeOutlined /> Home
+                </Breadcrumb.Item>
+                <Breadcrumb.Item>
+                    <TagOutlined /> Products
+                </Breadcrumb.Item>
+                <Breadcrumb.Item>{product.name}</Breadcrumb.Item>
+            </Breadcrumb>
+
+            <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={() => navigate(-1)}
+                className="mb-4"
+            >
+                Back
+            </Button>
+
             <Row gutter={[24, 24]}>
                 <Col xs={24} md={12}>
-                    <Image
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full rounded-lg shadow-md"
-                        style={{ objectFit: 'cover', maxHeight: '500px' }}
-                    />
+                    <Card className="product-image-card">
+                        <Image
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full rounded-lg"
+                            style={{ objectFit: 'cover' }}
+                        />
+                    </Card>
                 </Col>
 
                 <Col xs={24} md={12}>
-                    <Card className="shadow-md">
-                        <Title level={2}>{product.name}</Title>
+                    <Card className="product-details-card">
                         <Space direction="vertical" size="large" className="w-full">
-                            <Space>
-                                <Rate disabled allowHalf value={product.avg_rating} />
-                                <Text>({product.reviews?.length || 0} reviews)</Text>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <Title level={2}>{product.name}</Title>
+                                    <Space>
+                                        <Rate disabled allowHalf value={product.avg_rating} />
+                                        <Text>({product.reviews?.length || 0} reviews)</Text>
+                                    </Space>
+                                </div>
+                                <Space>
+                                    <Button
+                                        icon={isFavorite ? <HeartFilled /> : <HeartOutlined />}
+                                        onClick={toggleFavorite}
+                                        type={isFavorite ? 'primary' : 'default'}
+                                    />
+                                    <Button
+                                        icon={<ShareAltOutlined />}
+                                        onClick={handleShare}
+                                    />
+                                </Space>
+                            </div>
+
+                            <Space direction="vertical">
+                                <Title level={3} type="success" className="mb-0">
+                                    ${product.price.toFixed(2)}
+                                </Title>
+                                {getStockStatus()}
                             </Space>
-                            
-                            <Title level={3} type="success" className="mb-0">
-                                ${product.price.toFixed(2)}
-                            </Title>
 
-                            <Tag color={
-                                product.stock?.quantity === 0 ? 'red' :
-                                product.stock?.quantity <= product.stock?.MinQuantity ? 'orange' : 'green'
-                            }>
-                                {product.stock?.quantity === 0 ? 'Out of Stock' :
-                                 `${product.stock?.quantity} in stock`}
-                            </Tag>
+                            <div>
+                                <Title level={4}>Description</Title>
+                                <Paragraph>{product.description}</Paragraph>
+                            </div>
 
-                            <Paragraph>{product.description}</Paragraph>
+                            <Descriptions bordered size="small">
+                                <Descriptions.Item label="SKU" span={3}>
+                                    {product.ID}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Availability" span={3}>
+                                    {product.stock?.status}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Added On" span={3}>
+                                    {new Date(product.CreatedAt).toLocaleDateString()}
+                                </Descriptions.Item>
+                            </Descriptions>
+
+                            {product.stock?.quantity > 0 && (
+                                <Space direction="vertical" className="w-full">
+                                    <Text>Quantity:</Text>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={product.stock.quantity}
+                                        value={quantity}
+                                        onChange={(e) => handleQuantityChange(Number(e.target.value))}
+                                        style={{ width: '100px' }}
+                                    />
+                                </Space>
+                            )}
 
                             <Button
                                 type="primary"
@@ -169,71 +249,30 @@ export const ProductDetailPage: React.FC = () => {
                                  !product.stock?.quantity ? 'Out of Stock' :
                                  'Add to Cart'}
                             </Button>
+
+                            <Card size="small" className="shipping-info">
+                                <Space>
+                                    <ClockCircleOutlined />
+                                    <Text>Usually ships within 2-3 business days</Text>
+                                </Space>
+                            </Card>
                         </Space>
                     </Card>
                 </Col>
             </Row>
 
-            <Divider orientation="left">Customer Reviews</Divider>
-
-            <Card title="Write a Review" className="mb-6">
-                <Space direction="vertical" size="large" className="w-full">
-                    <div>
-                        <Text className="mb-2 block">Your Rating</Text>
-                        <Rate value={userRating} onChange={setUserRating} />
-                    </div>
-                    
-                    <div>
-                        <Text className="mb-2 block">Your Review</Text>
-                        <TextArea
-                            rows={4}
-                            value={userReview}
-                            onChange={(e) => setUserReview(e.target.value)}
-                            placeholder="Share your thoughts about this product..."
-                            maxLength={500}
-                            showCount
-                        />
-                    </div>
-
-                    <Button
-                        type="primary"
-                        onClick={handleSubmitReview}
-                        loading={submitting}
-                        icon={<UserOutlined />}
-                    >
-                        Submit Review
-                    </Button>
-                </Space>
-            </Card>
-
-            <List
-                itemLayout="vertical"
-                dataSource={product.reviews || []}
-                locale={{ emptyText: 'No reviews yet. Be the first to review!' }}
-                className="reviews-list"
-                renderItem={(review: Review) => (
-                    <Card className="mb-4">
-                        <Space direction="vertical" size="small" className="w-full">
-                            <Space>
-                                <UserOutlined />
-                                <Text strong>{review.UserID}</Text>
-                            </Space>
-                            
-                            <Rate disabled defaultValue={review.Rating} />
-                            
-                            <Space>
-                                <CalendarOutlined />
-                                <Text type="secondary">
-                                    {new Date(review.CreatedAt).toLocaleDateString()}
-                                </Text>
-                            </Space>
-                            
-                            <Paragraph className="mt-4">
-                                {review.Comment}
-                            </Paragraph>
-                        </Space>
-                    </Card>
-                )}
+            <ReviewSystem
+                productId={product.ID}
+                onReviewSubmitted={fetchProductDetails}
+                initialAnalytics={{
+                    productId: product.ID,
+                    averageRating: product.avg_rating,
+                    totalReviews: product.reviews?.length || 0,
+                    ratingDistribution: {},
+                    helpfulVotes: 0,
+                    responseRate: 0,
+                    verifiedPurchaseRate: 0
+                }}
             />
         </div>
     );

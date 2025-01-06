@@ -1,0 +1,111 @@
+.review-system {
+    margin-top: 24px;
+}
+
+.review-tabs {
+    margin-bottom: 24px;
+}
+
+.review-card {
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.review-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.review-image {
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.review-actions {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.review-reply {
+    background-color: #fafafa;
+    margin-top: 16px;
+}
+
+.review-form .ant-upload-list {
+    margin-bottom: 16px;
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    padding: 48px 0;
+}
+
+.review-analytics .ant-progress {
+    margin-top: 8px;
+}
+
+.review-distribution {
+    margin-top: 24px;
+}
+
+.review-content {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .review-card .ant-space {
+        flex-direction: column;
+    }
+
+    .review-image {
+        width: 100%;
+        height: 200px;
+    }
+
+    .review-analytics .ant-col {
+        width: 100%;
+    }
+}
+
+/* Animation */
+.review-card {
+    transition: all 0.3s ease;
+}
+
+/* Helper Classes */
+.w-full {
+    width: 100%;
+}
+
+.mb-4 {
+    margin-bottom: 16px;
+}
+
+.mt-4 {
+    margin-top: 16px;
+}
+
+.text-sm {
+    font-size: 12px;
+}
+
+/* Custom Theme Colors */
+.review-success {
+    color: #52c41a;
+}
+
+.review-warning {
+    color: #faad14;
+}
+
+.review-error {
+    color: #f5222d;
+}

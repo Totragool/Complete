@@ -42,7 +42,7 @@ func setupDB() (*gorm.DB, error) {
 	}
 
 	// Auto migrate schemas
-	err = db.AutoMigrate(&entity.Product{}, &entity.CartItem{}, &entity.Stock{},&entity.Order{}, &entity.OrderItem{}, &entity.Review{})
+	err = db.AutoMigrate(&entity.Product{}, &entity.CartItem{}, &entity.Stock{},&entity.Order{}, &entity.OrderItem{}, &entity.Review{}, &entity.ReviewAnalytics{})
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +128,10 @@ func main() {
 		api.PUT("/stock/:id", controller.UpdateStock)
 		api.POST("/orders", controller.CreateOrder)
 		api.GET("/orders", controller.GetOrders)
-		api.GET("/products/:id/reviews", controller.GetProductReviews)
 		api.POST("/reviews", controller.CreateReview)
+		api.GET("/products/:id/reviews", controller.GetProductReviews)
+		api.GET("/products/:id/reviews/analytics", controller.GetReviewAnalytics)
+		api.POST("/reviews/:id/vote", controller.VoteHelpful)
 	}
 
 	if err := seedSampleData(db); err != nil {
