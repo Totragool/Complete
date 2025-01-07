@@ -25,10 +25,22 @@ export const ProductService = {
   },
 
   async getProductDetails(id: number): Promise<Product> {
-    const response = await fetch(`${baseUrl}/products/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch product details');
-    return response.json();
-  },
+    try {
+        const response = await fetch(`${baseUrl}/products/${id}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Product not found');
+            }
+            throw new Error('Failed to fetch product details');
+        }
+        const data = await response.json();
+        console.log('Product details response:', data);
+        return data;
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+    }
+},
 
   async createReview(review: ReviewInput): Promise<Review> {
     const response = await fetch(`${baseUrl}/reviews`, {

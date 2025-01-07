@@ -28,6 +28,7 @@ func setupDB() (*gorm.DB, error) {
         &entity.Order{},
         &entity.OrderItem{},
         &entity.Review{},
+        &entity.ReviewAnalytics{},
     )
     if err != nil {
         return nil, err

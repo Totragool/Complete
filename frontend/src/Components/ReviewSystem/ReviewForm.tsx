@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Rate, Input, Button, Upload, Space, message, Typography, App } from 'antd';
+import { Form, Rate, Input, Button, Upload, Space, Typography, App, Alert } from 'antd';
 import { UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from 'react-query';
 import { ReviewService } from '../../services/ReviewService';
@@ -9,6 +9,8 @@ import type { RcFile } from 'antd/es/upload';
 
 const { TextArea } = Input;
 const { Text } = Typography;
+
+const API_URL = 'http://localhost:8000/api';  // เพิ่ม API_URL
 
 interface ReviewFormProps {
     productId: number;
@@ -20,7 +22,7 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const queryClient = useQueryClient();
-    const userId = "user123"; // Should come from auth context
+    const userId = "user123";
 
     const { mutate: submitReview, isLoading } = useMutation(
         async (values: any) => {
@@ -34,31 +36,23 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
                 })
             );
 
-            // Create review with image URLs
             const reviewData: ReviewInput = {
-                productId: productId,  // Changed from product_id to productId
-                userId: userId,      // Changed from user_id to userId
+                productId: productId,
+                userId: userId,
                 rating: values.rating,
                 comment: values.comment,
-                images: imageUrls.filter(url => url) // Remove empty strings
+                images: imageUrls.filter(url => url)
             };
 
             return ReviewService.createReview(reviewData);
         },
         {
             onSuccess: () => {
-                // Invalidate queries
                 queryClient.invalidateQueries(['reviews', productId]);
                 queryClient.invalidateQueries(['reviewAnalytics', productId]);
-                
-                // Reset form
                 form.resetFields();
                 setFileList([]);
-                
-                // Show success message
                 message.success('Review submitted successfully!');
-                
-                // Call success callback
                 if (onSuccess) onSuccess();
             },
             onError: (error: Error) => {
@@ -106,13 +100,14 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
             onFinish={handleSubmit}
             className="review-form"
         >
-            <Form.Item
-                name="rating"
-                label="Your Rating"
-                rules={[{ required: true, message: 'Please give a rating' }]}
-            >
-                <Rate allowHalf />
-            </Form.Item>
+        <Form.Item
+            name="rating"
+            label="Your Rating"
+            rules={[{ required: true, message: 'Please give a rating' }]}
+            help="Sign in to rate this product" // เพิ่ม helper text
+        >
+            <Rate allowHalf disabled={!userId} /> {/* Disable ถ้าไม่ได้ login */}
+        </Form.Item>
 
             <Form.Item
                 name="comment"
@@ -131,33 +126,47 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
             </Form.Item>
 
             <Form.Item 
-    label="Add Photos"
-    help="You can upload up to 5 images (2MB max each)"
->
-    <Upload
-        listType="picture-card"
-        fileList={fileList}
-        beforeUpload={beforeUpload}
-        onChange={handleChange}
-        maxCount={5}
-        customRequest={async ({ file, onSuccess, onError }) => {
-            try {
-                const url = await ReviewService.uploadImage(file as File);
-                onSuccess?.(url);
-            } catch (error) {
-                onError?.(new Error('Upload failed'));
-                message.error('Failed to upload image');
-            }
-        }}
-    >
-        {fileList.length >= 5 ? null : (
-            <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
-            </div>
-        )}
-    </Upload>
-</Form.Item>
+                label="Add Photos"
+                help="You can upload up to 5 images (2MB max each)"
+            >
+                <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    beforeUpload={beforeUpload}
+                    onChange={handleChange}
+                    maxCount={5}
+                    customRequest={async ({ file, onSuccess, onError }) => {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            const response = await fetch(`${API_URL}/reviews/upload`, {
+                                method: 'POST',
+                                body: formData,
+                            });
+
+                            if (!response.ok) {
+                                const error = await response.json();
+                                throw new Error(error.error || 'Upload failed');
+                            }
+
+                            const data = await response.json();
+                            onSuccess?.(data.imageUrl);
+                        } catch (error) {
+                            message.error(error instanceof Error ? error.message : 'Upload failed');
+                            onError?.(error as Error);
+                        }
+                    }}
+                    action=""  // เปลี่ยนจาก null เป็น empty string
+                >
+                    {fileList.length >= 5 ? null : (
+                        <div>
+                            <UploadOutlined />
+                            <div style={{ marginTop: 8 }}>Upload</div>
+                        </div>
+                    )}
+                </Upload>
+            </Form.Item>
 
             <Form.Item>
                 <Space direction="vertical" size="small" className="w-full">
@@ -167,12 +176,17 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
                         loading={isLoading}
                         icon={<UserOutlined />}
                         block
+                        disabled={!userId} // Disable ถ้าไม่ได้ login
                     >
-                        Submit Review
+                        {!userId ? 'Sign in to Review' : 'Submit Review'}
                     </Button>
-                    <Text type="secondary" className="text-sm">
-                        By submitting, you agree to our review guidelines
-                    </Text>
+                    {!userId && (
+                        <Alert
+                            type="info"
+                            showIcon
+                            message="Please sign in to write a review"
+                        />
+                    )}
                 </Space>
             </Form.Item>
         </Form>

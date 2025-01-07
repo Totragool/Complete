@@ -109,3 +109,38 @@
 .review-error {
     color: #f5222d;
 }
+
+.review-card {
+    margin-bottom: 16px;
+}
+
+.review-card .ant-card-body {
+    padding: 16px;
+}
+
+.review-card .ant-rate {
+    font-size: 16px;
+}
+
+.review-card .ant-typography {
+    margin-bottom: 0;
+}
+
+.review-card .ant-image {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.review-card .ant-tag {
+    margin-left: 8px;
+}
+
+.review-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-date {
+    color: rgba(0, 0, 0, 0.45);
+}

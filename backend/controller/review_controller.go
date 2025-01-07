@@ -17,6 +17,8 @@ import (
 func CreateReview(c *gin.Context) {
     db := c.MustGet("db").(*gorm.DB)
     
+    tx := db.Begin()
+
     var input struct {
         ProductID uint     `json:"product_id" binding:"required"`
         UserID    string   `json:"user_id" binding:"required"`
@@ -25,19 +27,26 @@ func CreateReview(c *gin.Context) {
         Images    []string `json:"images"`
     }
 
+    // ลบ GetRawData() ออกและใช้ ShouldBindJSON โดยตรง
     if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        tx.Rollback()
+        c.JSON(http.StatusBadRequest, gin.H{
+            "error": fmt.Sprintf("Invalid input: %v", err),
+        })
         return
     }
 
-    // Check if product exists
+    fmt.Printf("Received review data: %+v\n", input) // เพิ่ม log
+
     var product entity.Product
-    if err := db.First(&product, input.ProductID).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+    if err := tx.First(&product, input.ProductID).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusNotFound, gin.H{
+            "error": "Product not found",
+        })
         return
     }
 
-    // Create review
     review := entity.Review{
         ProductID: input.ProductID,
         UserID:    input.UserID,
@@ -46,21 +55,48 @@ func CreateReview(c *gin.Context) {
         Images:    input.Images,
     }
 
-    if err := db.Create(&review).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+    if err := tx.Create(&review).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": fmt.Sprintf("Failed to create review: %v", err),
+        })
         return
     }
 
-    // Update product average rating
     var avgRating float64
-    db.Model(&entity.Review{}).
+    if err := tx.Model(&entity.Review{}).
         Where("product_id = ?", input.ProductID).
         Select("COALESCE(AVG(rating), 0)").
-        Scan(&avgRating)
+        Scan(&avgRating).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": "Failed to calculate average rating",
+        })
+        return
+    }
 
-    db.Model(&product).Update("avg_rating", avgRating)
+    if err := tx.Model(&product).Update("AvgRating", avgRating).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": "Failed to update product rating",
+        })
+        return
+    }
 
-    c.JSON(http.StatusCreated, review)
+    if err := tx.Commit().Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": "Failed to commit transaction",
+        })
+        return
+    }
+
+    // Return complete review data
+    c.JSON(http.StatusCreated, gin.H{
+        "status": "success",
+        "data": review,
+        "message": "Review created successfully",
+    })
 }
 
 func GetProductReviews(c *gin.Context) {
@@ -73,9 +109,12 @@ func GetProductReviews(c *gin.Context) {
         return
     }
 
-    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-    pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
-    offset := (page - 1) * pageSize
+    // ตรวจสอบว่ามีสินค้าอยู่จริง
+    var product entity.Product
+    if err := db.First(&product, pID).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+        return
+    }
 
     var reviews []entity.Review
     var total int64
@@ -91,22 +130,17 @@ func GetProductReviews(c *gin.Context) {
     // Get paginated reviews
     if err := db.Where("product_id = ?", pID).
         Order("created_at desc").
-        Offset(offset).
-        Limit(pageSize).
         Find(&reviews).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reviews"})
         return
     }
 
-    totalPages := (int(total) + pageSize - 1) / pageSize
-    hasNextPage := int64(offset+pageSize) < total
-
     c.JSON(http.StatusOK, gin.H{
         "items": reviews,
         "total": total,
-        "page": page,
-        "totalPages": totalPages,
-        "hasNextPage": hasNextPage,
+        "page": 1,
+        "totalPages": 1,
+        "hasNextPage": false,
     })
 }
 
@@ -132,34 +166,23 @@ func VoteHelpful(c *gin.Context) {
 }
 
 func UploadImage(c *gin.Context) {
+    // Create uploads directory if not exists
+    if err := os.MkdirAll("uploads", 0755); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+        return
+    }
+
     // Get file
-    file, err := c.FormFile("image")
+    file, err := c.FormFile("file")
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
         return
     }
 
-    // Validate file size (2MB)
-    if file.Size > 2*1024*1024 {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "File size exceeds maximum limit (2MB)"})
-        return
-    }
-
     // Validate file type
-    ext := filepath.Ext(file.Filename)
-    allowedExt := map[string]bool{
-        ".jpg": true,
-        ".jpeg": true,
-        ".png": true,
-    }
-    if !allowedExt[strings.ToLower(ext)] {
+    ext := strings.ToLower(filepath.Ext(file.Filename))
+    if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG and PNG files are allowed"})
-        return
-    }
-
-    // Create uploads directory if it doesn't exist
-    if err := os.MkdirAll("uploads", 0755); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
         return
     }
 
@@ -167,18 +190,15 @@ func UploadImage(c *gin.Context) {
     filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
     filepath := fmt.Sprintf("uploads/%s", filename)
 
-    // Save file
     if err := c.SaveUploadedFile(file, filepath); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
         return
     }
 
-    // Return file URL
     c.JSON(http.StatusOK, gin.H{
         "imageUrl": "/uploads/" + filename,
     })
 }
-
 func GetReviewAnalytics(c *gin.Context) {
     db := c.MustGet("db").(*gorm.DB)
     productID := c.Param("id")

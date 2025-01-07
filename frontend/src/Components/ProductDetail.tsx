@@ -37,11 +37,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
         try {
             setError(null);
             const data = await ProductService.getProductDetails(Number(id));
-            console.log('Product details:', data);
             setProduct(data);
         } catch (error) {
             console.error('Error fetching product:', error);
-            setError('Failed to load product details');
+            if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError('Failed to load product details');
+            }
         } finally {
             setLoading(false);
         }

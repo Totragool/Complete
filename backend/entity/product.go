@@ -15,7 +15,7 @@ type Product struct {
     CartItems   []CartItem  `json:"-" gorm:"foreignKey:ProductID"`
     OrderItems  []OrderItem `json:"-" gorm:"foreignKey:ProductID"`
 	Reviews     []Review  `json:"reviews" gorm:"foreignKey:ProductID"`
-    AvgRating   float64   `json:"avg_rating" gorm:"-"`
+    AvgRating   float64   `json:"avg_rating" gorm:"default:0"`
 }
 
 // Validate validates the Product struct using custom validation
