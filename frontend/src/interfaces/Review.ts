@@ -1,25 +1,21 @@
 import { Product } from './Product';
 
 export interface Review {
-    ID: number;
-    ProductID: number;
-    Product?: Product;
-    UserID: string;
-    Rating: number;
-    Comment: string;
-    HelpfulVotes?: number;
-    Images?: string[];
-    VerifiedPurchase: boolean;
-    Reply?: string;
-    Status: ReviewStatus;
-    CreatedAt: string;
-    UpdatedAt: string;
-    DeletedAt?: string | null;
+    id: number;
+    productId: number;
+    userId: string;
+    rating: number;
+    comment: string;
+    images?: string[];
+    helpfulVotes: number;
+    verifiedPurchase: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface ReviewInput {
-    product_id: number;
-    user_id: string;
+    productId: number;
+    userId: string;
     rating: number;
     comment: string;
     images?: string[];
@@ -27,18 +23,12 @@ export interface ReviewInput {
 
 export interface ReviewAnalytics {
     productId: number;
-    averageRating: number;
     totalReviews: number;
+    averageRating: number;
     ratingDistribution: Record<number, number>;
     helpfulVotes: number;
     responseRate: number;
     verifiedPurchaseRate: number;
-}
-
-export enum ReviewStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected'
 }
 
 export interface ReviewsPagination {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Rate, Input, Button, Upload, Space, message, Typography } from 'antd';
+import { Form, Rate, Input, Button, Upload, Space, message, Typography, App } from 'antd';
 import { UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from 'react-query';
 import { ReviewService } from '../../services/ReviewService';
@@ -16,6 +16,7 @@ interface ReviewFormProps {
 }
 
 export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
+    const { message } = App.useApp();
     const [form] = Form.useForm();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const queryClient = useQueryClient();
@@ -35,8 +36,8 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
 
             // Create review with image URLs
             const reviewData: ReviewInput = {
-                product_id: productId,
-                user_id: userId,
+                productId: productId,  // Changed from product_id to productId
+                userId: userId,      // Changed from user_id to userId
                 rating: values.rating,
                 comment: values.comment,
                 images: imageUrls.filter(url => url) // Remove empty strings
@@ -67,17 +68,15 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
     );
 
     const handleSubmit = async (values: any) => {
-        if (!values.rating) {
-            message.warning('Please provide a rating');
-            return;
+        try {
+            await submitReview(values);
+        } catch (error) {
+            if (error instanceof Error) {
+                message.error(error.message);
+            } else {
+                message.error('Failed to submit review');
+            }
         }
-
-        if (!values.comment?.trim()) {
-            message.warning('Please write a review');
-            return;
-        }
-
-        submitReview(values);
     };
 
     const beforeUpload = (file: RcFile) => {
@@ -132,24 +131,33 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
             </Form.Item>
 
             <Form.Item 
-                label="Add Photos"
-                help="You can upload up to 5 images (2MB max each)"
-            >
-                <Upload
-                    listType="picture-card"
-                    fileList={fileList}
-                    beforeUpload={beforeUpload}
-                    onChange={handleChange}
-                    maxCount={5}
-                >
-                    {fileList.length >= 5 ? null : (
-                        <div>
-                            <UploadOutlined />
-                            <div style={{ marginTop: 8 }}>Upload</div>
-                        </div>
-                    )}
-                </Upload>
-            </Form.Item>
+    label="Add Photos"
+    help="You can upload up to 5 images (2MB max each)"
+>
+    <Upload
+        listType="picture-card"
+        fileList={fileList}
+        beforeUpload={beforeUpload}
+        onChange={handleChange}
+        maxCount={5}
+        customRequest={async ({ file, onSuccess, onError }) => {
+            try {
+                const url = await ReviewService.uploadImage(file as File);
+                onSuccess?.(url);
+            } catch (error) {
+                onError?.(new Error('Upload failed'));
+                message.error('Failed to upload image');
+            }
+        }}
+    >
+        {fileList.length >= 5 ? null : (
+            <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>Upload</div>
+            </div>
+        )}
+    </Upload>
+</Form.Item>
 
             <Form.Item>
                 <Space direction="vertical" size="small" className="w-full">

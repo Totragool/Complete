@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    Card, Rate, Input, Button, Typography, Divider, 
+    Card, Rate, Button, Typography, Divider, 
     Row, Col, Image, Space, Spin, Alert, Tag, App,
-    Descriptions, Badge, Breadcrumb, message
+    Breadcrumb
 } from 'antd';
 import { 
     ShoppingCartOutlined, 
     HomeOutlined,
     ArrowLeftOutlined,
     TagOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    HeartOutlined,
-    HeartFilled,
-    ShareAltOutlined
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import { ProductService } from '../services/ProductService';
 import { CartService } from '../services/CartService';
@@ -28,14 +24,13 @@ interface ProductDetailPageProps {
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpdate }) => {
+    const { message } = App.useApp();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [addingToCart, setAddingToCart] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [quantity, setQuantity] = useState(1);
     const userId = "user123"; // Should come from auth context
 
     const fetchProductDetails = async () => {
@@ -58,16 +53,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
             return;
         }
 
-        if (quantity > product.stock.quantity) {
-            message.error('Selected quantity exceeds available stock');
-            return;
-        }
-
         setAddingToCart(true);
         try {
             await CartService.addToCart(userId, product.ID);
             message.success('Added to cart successfully');
-            await fetchProductDetails();
             await onCartUpdate();
         } catch (error) {
             message.error('Failed to add to cart');
@@ -76,46 +65,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
         }
     };
 
-    const handleQuantityChange = (value: number | null) => {
-        if (!value || value < 1) return;
-        if (product?.stock && value > product.stock.quantity) {
-            message.warning(`Only ${product.stock.quantity} items available`);
-            setQuantity(product.stock.quantity);
-            return;
-        }
-        setQuantity(value);
-    };
-
-    const handleShare = () => {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url);
-        message.success('Product link copied to clipboard!');
-    };
-
-    const toggleFavorite = () => {
-        setIsFavorite(!isFavorite);
-        message.success(isFavorite ? 'Removed from wishlist' : 'Added to wishlist');
-    };
-
     useEffect(() => {
         if (id) {
             fetchProductDetails();
         }
     }, [id]);
-
-    const getStockStatus = () => {
-        if (!product?.stock) return null;
-
-        const { quantity, MinQuantity } = product.stock;
-        
-        if (quantity === 0) {
-            return <Badge status="error" text="Out of Stock" />;
-        }
-        if (quantity <= MinQuantity) {
-            return <Badge status="warning" text={`Low Stock (${quantity} left)`} />;
-        }
-        return <Badge status="success" text={`In Stock (${quantity} available)`} />;
-    };
 
     if (loading) {
         return (
@@ -142,18 +96,26 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
         );
     }
 
+    const breadcrumbItems = [
+        {
+            title: <><HomeOutlined /> Home</>,
+            href: '/'
+        },
+        {
+            title: <><TagOutlined /> Products</>,
+            href: '/products'
+        },
+        {
+            title: product.name
+        }
+    ];
+
     return (
         <div className="page-container">
-            <Breadcrumb className="mb-4">
-                <Breadcrumb.Item href="/">
-                    <HomeOutlined /> Home
-                </Breadcrumb.Item>
-                <Breadcrumb.Item>
-                    <TagOutlined /> Products
-                </Breadcrumb.Item>
-                <Breadcrumb.Item>{product.name}</Breadcrumb.Item>
-            </Breadcrumb>
+            {/* Breadcrumb Navigation */}
+            <Breadcrumb items={breadcrumbItems} className="mb-4" />
 
+            {/* Back Button */}
             <Button 
                 icon={<ArrowLeftOutlined />} 
                 onClick={() => navigate(-1)}
@@ -163,6 +125,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
             </Button>
 
             <Row gutter={[24, 24]}>
+                {/* Product Image */}
                 <Col xs={24} md={12}>
                     <Card className="product-image-card">
                         <Image
@@ -174,68 +137,42 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
                     </Card>
                 </Col>
 
+                {/* Product Details */}
                 <Col xs={24} md={12}>
                     <Card className="product-details-card">
                         <Space direction="vertical" size="large" className="w-full">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <Title level={2}>{product.name}</Title>
-                                    <Space>
-                                        <Rate disabled allowHalf value={product.avg_rating} />
-                                        <Text>({product.reviews?.length || 0} reviews)</Text>
-                                    </Space>
-                                </div>
+                            {/* Product Title and Rating */}
+                            <div>
+                                <Title level={2}>{product.name}</Title>
                                 <Space>
-                                    <Button
-                                        icon={isFavorite ? <HeartFilled /> : <HeartOutlined />}
-                                        onClick={toggleFavorite}
-                                        type={isFavorite ? 'primary' : 'default'}
-                                    />
-                                    <Button
-                                        icon={<ShareAltOutlined />}
-                                        onClick={handleShare}
-                                    />
+                                    <Rate disabled allowHalf value={product.avg_rating} />
+                                    <Text>({product.reviews?.length || 0} reviews)</Text>
                                 </Space>
                             </div>
 
+                            {/* Price and Stock Status */}
                             <Space direction="vertical">
                                 <Title level={3} type="success" className="mb-0">
                                     ${product.price.toFixed(2)}
                                 </Title>
-                                {getStockStatus()}
+                                <Tag color={
+                                    product.stock?.quantity === 0 ? 'red' :
+                                    product.stock?.quantity <= (product.stock?.MinQuantity || 0) ? 'orange' : 'green'
+                                }>
+                                    {product.stock?.quantity === 0 ? 'Out of Stock' :
+                                    product.stock?.quantity <= (product.stock?.MinQuantity || 0) ? 'Low Stock' :
+                                    'In Stock'}
+                                    {product.stock?.quantity > 0 && ` (${product.stock?.quantity} available)`}
+                                </Tag>
                             </Space>
 
+                            {/* Product Description */}
                             <div>
                                 <Title level={4}>Description</Title>
                                 <Paragraph>{product.description}</Paragraph>
                             </div>
 
-                            <Descriptions bordered size="small">
-                                <Descriptions.Item label="SKU" span={3}>
-                                    {product.ID}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Availability" span={3}>
-                                    {product.stock?.status}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Added On" span={3}>
-                                    {new Date(product.CreatedAt).toLocaleDateString()}
-                                </Descriptions.Item>
-                            </Descriptions>
-
-                            {product.stock?.quantity > 0 && (
-                                <Space direction="vertical" className="w-full">
-                                    <Text>Quantity:</Text>
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        max={product.stock.quantity}
-                                        value={quantity}
-                                        onChange={(e) => handleQuantityChange(Number(e.target.value))}
-                                        style={{ width: '100px' }}
-                                    />
-                                </Space>
-                            )}
-
+                            {/* Add to Cart Button */}
                             <Button
                                 type="primary"
                                 icon={<ShoppingCartOutlined />}
@@ -250,6 +187,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
                                  'Add to Cart'}
                             </Button>
 
+                            {/* Shipping Info */}
                             <Card size="small" className="shipping-info">
                                 <Space>
                                     <ClockCircleOutlined />
@@ -261,13 +199,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ onCartUpda
                 </Col>
             </Row>
 
+            {/* Reviews Section */}
             <ReviewSystem
                 productId={product.ID}
                 onReviewSubmitted={fetchProductDetails}
                 initialAnalytics={{
                     productId: product.ID,
-                    averageRating: product.avg_rating,
                     totalReviews: product.reviews?.length || 0,
+                    averageRating: product.avg_rating || 0,
                     ratingDistribution: {},
                     helpfulVotes: 0,
                     responseRate: 0,
