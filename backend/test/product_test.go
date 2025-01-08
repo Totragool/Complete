@@ -1,41 +1,48 @@
 package tests
 
 import (
-	"testing"
-	"Cart/entity"
-	. "github.com/onsi/gomega"
+    "testing"
+    "Cart/entity"
+    "github.com/asaskevich/govalidator"
+    . "github.com/onsi/gomega"
 )
 
-func TestProductName(t *testing.T) {
-	g := NewGomegaWithT(t)
+func TestProduct(t *testing.T) {
+    g := NewGomegaWithT(t)
 
-	t.Run("Name is required", func(t *testing.T) {
-		product := entity.Product{
-			Name:        "",
-			Price:       999,
-			Description: "",
-			Image:       "invalid-url",
-		}
+    t.Run("name is required", func(t *testing.T) {
+        product := entity.Product{
+            Name: "",
+            Price: 100,
+            Description: "Test product",
+        }
+        ok, err := govalidator.ValidateStruct(product)
+        g.Expect(ok).NotTo(BeTrue())
+        g.Expect(err).NotTo(BeNil())
+        g.Expect(err.Error()).To(ContainSubstring("name is required"))
+    })
 
-		err := product.Validate() // Using the custom validation function
-		g.Expect(err).NotTo(BeNil())
-		g.Expect(err.Error()).To(ContainSubstring("Name is required"))
-	})
-}
+    t.Run("price must be positive", func(t *testing.T) {
+        product := entity.Product{
+            Name: "Test Product",
+            Price: -100,
+            Description: "Test product",
+        }
+        ok, err := govalidator.ValidateStruct(product)
+        g.Expect(ok).NotTo(BeTrue())
+        g.Expect(err).NotTo(BeNil())
+        g.Expect(err.Error()).To(ContainSubstring("price must be positive"))
+    })
 
-func TestProductPrice(t *testing.T) {
-	g := NewGomegaWithT(t)
-
-	t.Run("Price cannot be negative", func(t *testing.T) {
-		product := entity.Product{
-			Name:        "Dog",
-			Price:       -999,
-			Description: "",
-			Image:       "invalid-url",
-		}
-
-		err := product.Validate() // Using the custom validation function
-		g.Expect(err).NotTo(BeNil())
-		g.Expect(err.Error()).To(ContainSubstring("Price cannot be negative"))
-	})
+    t.Run("description is required", func(t *testing.T) {
+        product := entity.Product{
+            Name: "Test Product",
+            Price: 100,
+            Description: "",
+        }
+        ok, err := govalidator.ValidateStruct(product)
+        g.Expect(ok).NotTo(BeTrue())
+        g.Expect(err).NotTo(BeNil())
+        g.Expect(err.Error()).To(ContainSubstring("description is required"))
+    })
 }

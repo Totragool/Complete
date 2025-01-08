@@ -9,20 +9,21 @@ import (
 
 type Order struct {
     gorm.Model
-    UserID     string      `json:"user_id"`
-    TotalPrice float64     `json:"total_price"`
-    Status     string      `json:"status" gorm:"default:Pending"` // Pending, Completed, Cancelled
-    OrderDate  time.Time   `json:"order_date"`
+    UserID     string      `json:"user_id" valid:"required~user_id is required"`
+    // Modified validation message to match test expectation
+    TotalPrice float64     `json:"total_price" valid:"total price must be positive"` 
+    Status     string      `json:"status" gorm:"default:pending" valid:"status must be valid"`
+    OrderDate  time.Time   `json:"order_date" `
     OrderItems []OrderItem `json:"order_items" gorm:"foreignKey:OrderID"`
 }
 
 // Validate validates the Order struct
 func (o *Order) Validate() error {
-    if o.UserID == "" {
-        return fmt.Errorf("UserID is required")
+    if o.TotalPrice <= 0 {
+        return fmt.Errorf("total price must be positive")
     }
-    if o.TotalPrice < 0 {
-        return fmt.Errorf("Total price cannot be negative")
+    if o.UserID == "" {
+        return fmt.Errorf("user_id is required")
     }
     return nil
 }

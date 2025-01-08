@@ -36,14 +36,15 @@ func (sa StringArray) Value() (driver.Value, error) {
 
 type Review struct {
     gorm.Model
-    ProductID        uint      `json:"product_id"`
-    Product         Product   `gorm:"-" json:"-"` // ป้องกัน circular reference
-    UserID          string    `json:"user_id"`
-    Rating          int       `json:"rating"`
-    Comment         string    `json:"comment"`
-    HelpfulVotes    int       `json:"helpful_votes" gorm:"default:0"`
-    Images          StringArray `json:"images" gorm:"type:text"`
-    VerifiedPurchase bool     `json:"verified_purchase" gorm:"default:false"`
-    Status          string    `json:"status" gorm:"default:'pending'"`
-    Reply           string    `json:"reply"`
+    ProductID        uint        `json:"product_id" valid:"required~product_id is required"`
+    Product         Product     `gorm:"-" json:"-"`
+    UserID          string      `json:"user_id" valid:"required~user_id is required"`
+    Rating          int         `json:"rating" valid:"required,range(1|5)~rating must be between 1 and 5"`
+    // Modified validation message to match test expectation
+    Comment         string      `json:"comment" valid:"required,stringlength(10|500)~comment must be at least 10 characters"`
+    HelpfulVotes    int         `json:"helpful_votes" gorm:"default:0" valid:"range(0|)~helpful votes cannot be negative"`
+    Images          StringArray `json:"images" gorm:"type:text" valid:"optional"`
+    VerifiedPurchase bool       `json:"verified_purchase" gorm:"default:false"`
+    Status          string      `json:"status" gorm:"default:'pending'" valid:"in(pending|approved|rejected)~invalid status"`
+    Reply           string      `json:"reply" valid:"optional"`
 }

@@ -8,13 +8,12 @@ import (
 
 type OrderItem struct {
     gorm.Model
-    OrderID    uint    `json:"order_id"`
-    Order      Order   `json:"order" gorm:"foreignKey:OrderID"`
-    ProductID  uint    `json:"product_id"`
+    OrderID    uint    `json:"order_id" valid:"required~Order ID is required"`
+    ProductID  uint    `json:"product_id" valid:"required~Product ID is required"`
     Product    Product `json:"product" gorm:"foreignKey:ProductID"`
-    Quantity   int     `json:"quantity" valid:"required~quantity cannot be negative or zero"`
-    UnitPrice  float64 `json:"unit_price"`
-    TotalPrice float64 `json:"total_price"`
+    Quantity   int     `json:"quantity" valid:"required~Quantity is required,range(1|)~Quantity must be positive"`
+    UnitPrice  float64 `json:"unit_price" valid:"required~Unit price is required,float,range(0.01|)~Unit price must be positive"`
+    TotalPrice float64 `json:"total_price" valid:"required~Total price is required,float,range(0.01|)~Total price must be positive"`
 }
 
 // Validate validates the OrderItem struct
