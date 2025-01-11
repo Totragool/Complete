@@ -2,18 +2,32 @@ import { CartItem } from '../interfaces/Cart';
 
 const baseUrl = 'http://localhost:8000/api';
 
-interface CartResponse {
-  data: CartItem[];
-  error?: string;
-}
-
 export const CartService = {
-  async getCart(userId: string): Promise<CartItem[]> {
+  async getCart(): Promise<CartItem[]> {
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('id');
+
+    if (!token || !userId) {
+      throw new Error('Unauthorized');
+    }
+
     try {
-      const response = await fetch(`${baseUrl}/cart?user_id=${userId}`);
+      const response = await fetch(`${baseUrl}/cart?user_id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.clear();
+          window.location.href = '/login';
+          throw new Error('Session expired');
+        }
         throw new Error('Failed to fetch cart');
       }
+
       return response.json();
     } catch (error) {
       console.error('Cart fetch error:', error);
@@ -21,11 +35,19 @@ export const CartService = {
     }
   },
 
-  async addToCart(userId: string, productId: number): Promise<CartItem> {
+  async addToCart(productId: number): Promise<CartItem> {
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('id');
+
+    if (!token || !userId) {
+      throw new Error('Unauthorized');
+    }
+
     try {
       const response = await fetch(`${baseUrl}/cart`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -36,6 +58,11 @@ export const CartService = {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.clear();
+          window.location.href = '/login';
+          throw new Error('Session expired');
+        }
         const error = await response.json();
         throw new Error(error.error || 'Failed to add to cart');
       }
@@ -48,12 +75,30 @@ export const CartService = {
   },
 
   async updateCartItem(itemId: number, quantity: number): Promise<CartItem> {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Unauthorized');
+    }
+
     const response = await fetch(`${baseUrl}/cart/${itemId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ quantity }),
     });
-    if (!response.ok) throw new Error('Failed to update cart item');
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.clear();
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
+      throw new Error('Failed to update cart item');
+    }
+    
     return response.json();
-  },
+  }
 };
