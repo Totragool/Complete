@@ -5,77 +5,23 @@ import (
     "time"
     "os"
 
+    "Cart/config"
     "Cart/controller"
-    "Cart/entity"
+    "Cart/middlewares"
     
     "github.com/gin-contrib/cors"
     "github.com/gin-gonic/gin"
-    "gorm.io/driver/sqlite"
-    "gorm.io/gorm"
 )
 
-func setupDB() (*gorm.DB, error) {
-    db, err := gorm.Open(sqlite.Open("ecommerce.db"), &gorm.Config{})
-    if err != nil {
-        return nil, err
-    }
-
-    // Auto migrate schemas
-    err = db.AutoMigrate(
-        &entity.Product{},
-        &entity.CartItem{},
-        &entity.Stock{},
-        &entity.Order{},
-        &entity.OrderItem{},
-        &entity.Review{},
-        &entity.ReviewAnalytics{},
-    )
-    if err != nil {
-        return nil, err
-    }
-
-    return db, nil
-}
-
-func seedSampleData(db *gorm.DB) error {
-    // สร้างข้อมูลตัวอย่าง
-    var sampleProducts = []entity.Product{
-		{Name: "Modern Sofa", Price: 999.99, Description: "Comfortable 3-seater sofa with premium fabric", Image: "/images/ModernSofa.jpg"},
-		{Name: "Leather Couch", Price: 1299.99, Description: "Genuine leather couch with recliner", Image: "/images/Leather Couch.jpg"},
-		{Name: "Corner Sofa", Price: 1499.99, Description: "L-shaped corner sofa with storage", Image: "/images/Corner Sofa.jpg"},
-		{Name: "Sofa Bed", Price: 799.99, Description: "Convertible sofa bed for guests", Image: "/images/Sofa Bed.jpg"},
-		{Name: "Lounge Chair", Price: 499.99, Description: "Comfortable accent chair with ottoman", Image: "/images/Lounge Chair.jpg"},
-		{Name: "Ottoman", Price: 199.99, Description: "Matching ottoman with storage", Image: "/images/Ottoman.jpg"},
-	}
-
-    for _, product := range sampleProducts {
-        if err := db.Create(&product).Error; err != nil {
-            return err
-        }
-        
-        stock := entity.Stock{
-            ProductID:   product.ID,
-            Quantity:    50,
-            MinQuantity: 10,
-            Status:      "In Stock",
-        }
-        if err := db.Create(&stock).Error; err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
 func main() {
-    // สร้างโฟลเดอร์ uploads ถ้ายังไม่มี
-    if _, err := os.Stat("uploads"); os.IsNotExist(err) {
-        os.Mkdir("uploads", 0755)
-    }
+    // Setup the database
+    config.SetupDatabase()
 
-    // Setup database
-    db, err := setupDB()
-    if err != nil {
-        log.Fatal("Failed to connect to database:", err)
+    // Create uploads directory if it doesn't exist
+    if _, err := os.Stat("uploads"); os.IsNotExist(err) {
+        if err := os.MkdirAll("uploads", 0755); err != nil {
+            log.Fatal("Failed to create uploads directory:", err)
+        }
     }
 
     // Initialize Gin
@@ -91,50 +37,50 @@ func main() {
         MaxAge:           12 * time.Hour,
     }))
 
-    // Middleware
+    // Middleware to inject database connection
     r.Use(func(c *gin.Context) {
-        c.Set("db", db)
+        c.Set("db", config.ConnectionDB())
         c.Next()
     })
 
-    // Serve static files
+    // Static file serving
     r.Static("/uploads", "./uploads")
 
-	if _, err := os.Stat("uploads"); os.IsNotExist(err) {
-        if err := os.MkdirAll("uploads", 0755); err != nil {
-            log.Fatal("Failed to create uploads directory:", err)
-        }
+    // Public routes
+    public := r.Group("/api")
+    {
+        // Authentication routes
+        public.POST("/register", controller.Register)
+        public.POST("/login", controller.Login)
+        
+        // Public product routes
+        public.GET("/products", controller.GetProducts)
+        public.GET("/products/:id", controller.GetProductDetails)
+        public.GET("/products/:id/reviews", controller.GetProductReviews)
+        public.GET("/products/:id/reviews/analytics", controller.GetReviewAnalytics)
     }
 
-    // API Routes
-    api := r.Group("/api")
+    // Protected routes
+    protected := r.Group("/api")
+    protected.Use(middlewares.Authorizes())
     {
-        // Product routes
-        api.GET("/products", controller.GetProducts)
-        api.GET("/products/:id", controller.GetProductDetails)
-        api.GET("/products/:id/stock", controller.GetProductStock)
-
         // Cart routes
-        api.POST("/cart", controller.AddToCart)
-        api.GET("/cart", controller.GetCart)
-        api.PUT("/cart/:id", controller.UpdateCartItem)
-        api.PUT("/stock/:id", controller.UpdateStock)
+        protected.POST("/cart", controller.AddToCart)
+        protected.GET("/cart", controller.GetCart)
+        protected.PUT("/cart/:id", controller.UpdateCartItem)
 
         // Order routes
-        api.POST("/orders", controller.CreateOrder)
-        api.GET("/orders", controller.GetOrders)
+        protected.POST("/orders", controller.CreateOrder)
+        protected.GET("/orders", controller.GetOrders)
 
         // Review routes
-        api.POST("/reviews", controller.CreateReview)
-        api.GET("/products/:id/reviews", controller.GetProductReviews)
-        api.GET("/products/:id/reviews/analytics", controller.GetReviewAnalytics)
-        api.POST("/reviews/:id/vote", controller.VoteHelpful)
-        api.POST("/reviews/upload", controller.UploadImage)
-    }
+        protected.POST("/reviews", controller.CreateReview)
+        protected.POST("/reviews/:id/vote", controller.VoteHelpful)
+        protected.POST("/reviews/upload", controller.UploadImage)
 
-    // Seed data if needed
-    if err := seedSampleData(db); err != nil {
-        log.Printf("Warning: Failed to seed database: %v", err)
+        // Stock management (might need additional admin middleware)
+        protected.PUT("/stock/:id", controller.UpdateStock)
+        protected.GET("/products/:id/stock", controller.GetProductStock)
     }
 
     // Start server
