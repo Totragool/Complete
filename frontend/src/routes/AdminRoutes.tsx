@@ -7,21 +7,21 @@ import Loadable from "../components/third-party/Loadable";
 import AdminLayout from "../layout/AdminLayout";
 
 
-const MainPages = Loadable(lazy(() => import("../pages/authentication/Login")));
+const MainPages = Loadable(lazy(() => import("../page/authentication/Login")));
 
-const HomeCode = Loadable(lazy(() => import("../pages/admin/palm")));
+const HomeCode = Loadable(lazy(() => import("../page/admin/palm")));
 
-const Code = Loadable(lazy(() => import("../pages/admin/palm/code")));
+const Code = Loadable(lazy(() => import("../page/admin/palm/code")));
 
-const CreateCode = Loadable(lazy(() => import("../pages/admin/palm/code/create")));
+const CreateCode = Loadable(lazy(() => import("../page/admin/palm/code/create")));
 
-const EditCode = Loadable(lazy(() => import("../pages/admin/palm/code/edit")));
+const EditCode = Loadable(lazy(() => import("../page/admin/palm/code/edit")));
 
-const AddAdmin = Loadable(lazy(() => import("../pages/admin/palm/add")));
+const AddAdmin = Loadable(lazy(() => import("../page/admin/palm/add")));
 
-const AdminCreate = Loadable(lazy(() => import("../pages/admin/palm/add/create")));
+const AdminCreate = Loadable(lazy(() => import("../page/admin/palm/add/create")));
 
-const AdminEdit = Loadable(lazy(() => import("../pages/admin/palm/add/edit")));
+const AdminEdit = Loadable(lazy(() => import("../page/admin/palm/add/edit")));
 
 
 

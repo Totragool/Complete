@@ -13,15 +13,15 @@ const Dashboard = Loadable(lazy(() => import("../page/customer/palm/dashboard"))
 
 const Customer = Loadable(lazy(() => import("../page/customer/palm/customer")));
 
-const CreateCustomer = Loadable(lazy(() => import("../pages/customer/palm/customer/create)));
+const CreateCustomer = Loadable(lazy(() => import("../pagescustomer/palm/customer/create)));
 
-const EditCustomer = Loadable(lazy(() => import("../pages/customer/palm/customer/edit")));
+const EditCustomer = Loadable(lazy(() => import("../page/customer/palm/customer/edit")));
 
-const UserCodes = Loadable(lazy(() => import("../pages/customer/palm/code")));
+const UserCodes = Loadable(lazy(() => import("../page/customer/palm/code")));
 
-const ProfileEdit = Loadable(lazy(() => import("../pages/customer/palm/profile")));
+const ProfileEdit = Loadable(lazy(() => import("../page/customer/palm/profile")));
 
-const AddAddressPage = Loadable(lazy(() => import("../pages/customer/palm/profile/address")));
+const AddAddressPage = Loadable(lazy(() => import("../page/customer/palm/profile/address")));
 
 
 const UserRoutes = (isLoggedIn: boolean): RouteObject => {
