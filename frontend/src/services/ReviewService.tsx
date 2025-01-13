@@ -3,7 +3,7 @@ import { Review, ReviewInput, ReviewAnalytics, ReviewsPagination } from '../inte
 const baseUrl = 'http://localhost:8000/api';
 
 export const ReviewService = {
-    async getReviews(productId: number): Promise<ReviewsPagination> {
+    async getReviews(productId: number, pageParam: any): Promise<ReviewsPagination> {
         try {
             const response = await fetch(`${baseUrl}/products/${productId}/reviews`);
             if (!response.ok) {
