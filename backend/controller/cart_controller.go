@@ -1,50 +1,21 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
-
-	"Cart/entity"
-	"Cart/services"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"Cart/entity"
+    "log"
 )
 
-func getUserFromToken(c *gin.Context) (string, error) {
-    authHeader := c.GetHeader("Authorization")
-    if authHeader == "" {
-        return "", fmt.Errorf("no auth header")
-    }
-
-    tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-    
-    jwtWrapper := services.JwtWrapper{
-        SecretKey: "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
-        Issuer:    "AuthService",
-    }
-
-    claims, err := jwtWrapper.ValidateToken(tokenString)
-    if err != nil {
-        return "", err
-    }
-
-    return claims.Email, nil
-}
-
+// controller/cart.go
 func GetCart(c *gin.Context) {
     db := c.MustGet("db").(*gorm.DB)
+    userID := c.Query("user_id")
     
-    userEmail, err := getUserFromToken(c)
-    if err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
-    
-    var user entity.Users
-    if err := db.Where("email = ?", userEmail).First(&user).Error; err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+    if userID == "" {
+        c.JSON(400, gin.H{"error": "user_id is required"})
         return
     }
     
@@ -52,9 +23,9 @@ func GetCart(c *gin.Context) {
     if err := db.Debug().
         Preload("Product").
         Joins("LEFT JOIN products ON cart_items.product_id = products.id").
-        Where("cart_items.user_id = ?", user.ID).
+        Where("cart_items.user_id = ?", userID).
         Find(&cartItems).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch cart items"})
+        c.JSON(500, gin.H{"error": "Failed to fetch cart items"})
         return
     }
 
@@ -62,30 +33,22 @@ func GetCart(c *gin.Context) {
     for i, item := range cartItems {
         var stock entity.Stock
         if err := db.Where("product_id = ?", item.ProductID).First(&stock).Error; err != nil {
+            log.Printf("Warning: No stock found for product %d", item.ProductID)
             continue
         }
         cartItems[i].Product.Stock = &stock
     }
     
-    c.JSON(http.StatusOK, cartItems)
+    log.Printf("Returning cart items: %+v", cartItems)
+    c.JSON(200, cartItems)
 }
+
 
 func AddToCart(c *gin.Context) {
     db := c.MustGet("db").(*gorm.DB)
     
-    userEmail, err := getUserFromToken(c)
-    if err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
-    
-    var user entity.Users
-    if err := db.Where("email = ?", userEmail).First(&user).Error; err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-        return
-    }
-    
     var input struct {
+        UserID    string `json:"user_id" binding:"required"`
         ProductID uint   `json:"product_id" binding:"required"`
         Quantity  int    `json:"quantity" binding:"required"`
     }
@@ -103,9 +66,9 @@ func AddToCart(c *gin.Context) {
     }
     
     cartItem := entity.CartItem{
-        UserID:    fmt.Sprintf("%d", user.ID),
+        UserID:    input.UserID,
         ProductID: input.ProductID,
-        Product:   product,
+        Product:   product,  // Include the product
         Quantity:  input.Quantity,
     }
     
@@ -114,6 +77,7 @@ func AddToCart(c *gin.Context) {
         return
     }
     
+    // Load the full cart item with product data
     if err := db.Preload("Product").First(&cartItem, cartItem.ID).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load cart item"})
         return
