@@ -95,7 +95,6 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
     return (
         <Form form={form} layout="vertical" onFinish={handleSubmit} className="review-form">
         <Form.Item
-        id = {"rating"}
             name="rating"
             label="Your Rating"
             rules={[{ required: true, message: 'Please give a rating' }]}
@@ -124,7 +123,6 @@ export const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) 
             help="You can upload up to 5 images (2MB max each)"
         >
             <Upload
-                id = {"avatar"}
                 listType="picture-card"
                 fileList={fileList}
                 beforeUpload={beforeUpload}
