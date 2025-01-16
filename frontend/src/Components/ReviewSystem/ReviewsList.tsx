@@ -45,11 +45,11 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ productId }) => {
 
     const getReviewKey = (review: Review) => {
         // ตรวจสอบว่ามี ID หรือไม่
-        if (!review || typeof review.ID === 'undefined') {
+        if (!review || typeof review.id === 'undefined') {
             // ถ้าไม่มี ID ใช้ค่าอื่นๆ แทน
-            return `${review?.ProductID}-${review?.UserID}-${Date.now()}`;
+            return `${review?.productId}-${review?.userId}-${Date.now()}`;
         }
-        return review.ID.toString();
+        return review.id.toString();
     };
 
     return (
