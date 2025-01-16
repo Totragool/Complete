@@ -14,7 +14,6 @@ func TestStock(t *testing.T) {
         stock := entity.Stock{
             ProductID: 1,
             Quantity: -1,
-            MinQuantity: 10,
         }
         ok, err := govalidator.ValidateStruct(stock)
         g.Expect(ok).NotTo(BeTrue())
@@ -26,7 +25,6 @@ func TestStock(t *testing.T) {
         stock := entity.Stock{
             ProductID: 1,
             Quantity: 100,
-            MinQuantity: 0,
         }
         ok, err := govalidator.ValidateStruct(stock)
         g.Expect(ok).NotTo(BeTrue())
@@ -38,7 +36,6 @@ func TestStock(t *testing.T) {
         stock := entity.Stock{
             ProductID: 0,
             Quantity: 100,
-            MinQuantity: 10,
         }
         ok, err := govalidator.ValidateStruct(stock)
         g.Expect(ok).NotTo(BeTrue())
