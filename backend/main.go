@@ -7,6 +7,7 @@ import (
 
     "Cart/controller"
     "Cart/config"
+    "Cart/middlewares"
     
     "github.com/gin-contrib/cors"
     "github.com/gin-gonic/gin"
@@ -55,27 +56,38 @@ func main() {
     // API Routes
     api := r.Group("/api")
     {
-        // Product routes
-        api.GET("/products", controller.GetProducts)
-        api.GET("/products/:id", controller.GetProductDetails)
-        api.GET("/products/:id/stock", controller.GetProductStock)
+        // Public routes
+        api.POST("/auth/login", controller.Login)
 
-        // Cart routes
-        api.POST("/cart", controller.AddToCart)
-        api.GET("/cart", controller.GetCart)
-        api.PUT("/cart/:id", controller.UpdateCartItem)
-        api.PUT("/stock/:id", controller.UpdateStock)
+        // Protected routes
+        protected := api.Group("/")
+        protected.Use(middleware.AuthRequired())
+        {
+            protected.GET("/auth/me", controller.GetMe)
+            protected.GET("/cart", controller.GetCart)
+            protected.POST("/cart", controller.AddToCart)
+            protected.GET("/orders", controller.GetOrders)
+        }
 
-        // Order routes
-        api.POST("/orders", controller.CreateOrder)
-        api.GET("/orders", controller.GetOrders)
+        // Admin routes
+        admin := api.Group("/admin")
+        admin.Use(middleware.AuthRequired(), middleware.AdminOnly())
+        {
+            // จัดการสินค้า
+            admin.POST("/products", controller.CreateProduct)
+            admin.PUT("/products/:id", controller.UpdateProduct)
+            admin.DELETE("/products/:id", controller.DeleteProduct)
 
-        // Review routes
-        api.POST("/reviews", controller.CreateReview)
-        api.GET("/products/:id/reviews", controller.GetProductReviews)
-        api.GET("/products/:id/reviews/analytics", controller.GetReviewAnalytics)
-        api.POST("/reviews/:id/vote", controller.VoteHelpful)
-        api.POST("/reviews/upload", controller.UploadImage)
+            // จัดการสต็อก
+            admin.POST("/stock", controller.CreateStock)
+            admin.PUT("/stock/:id", controller.UpdateStock)
+            admin.DELETE("/stock/:id", controller.DeleteStock)
+
+            // รายงาน
+            admin.GET("/reports/sales", controller.GetSalesReport)
+            admin.GET("/reports/stock", controller.GetStockReport)
+            admin.GET("/reports/orders", controller.GetOrdersReport)
+        }
     }
 
     // Seed data if needed
